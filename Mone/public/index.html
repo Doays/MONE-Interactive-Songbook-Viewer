@@ -1,0 +1,2682 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>모네 인터랙티브 노래책 (Re-Design + Bubbles)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
+<style>
+:root{
+  --primary:#9b72cf;
+  --primary-2:#7e62c9;
+  --primary-light:#e9ddff;
+
+  /* ✅ “주황 최대 = 연보라에 살짝 섞인 정도” */
+  --accent:#f3a65b;          /* 과한 주황 X (채도/명도 조절) */
+  --accent-soft:#ffe9c9;
+
+  --glass-bg:rgba(255,255,255,.62);
+  --glass-border:rgba(255,255,255,.85);
+  --glass-shadow:0 10px 34px 0 rgba(116,92,190,.14);
+
+  --text-main:#1f2937;       /* 대비 ↑ */
+  --text-sub:#475569;        /* 대비 ↑ */
+  --text-soft:rgba(31,41,55,.62);
+
+  --scale:1;
+  --page-max:calc(1600px * var(--scale));
+
+  --col-manual:clamp(380px, 26vw, 560px);
+  --col-book:  clamp(520px, 40vw, 820px);
+  --col-req:   clamp(380px, 28vw, 520px);
+  --gap-layout:24px;
+
+  --sheet-grid:rgba(185,185,185,.65);
+
+  /* 상단바 높이 기준(대략) */
+  --topbar-pad:16px;
+}
+
+*{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  font-family:"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  color:var(--text-main);
+
+  /* ✅ 기본 바탕색(전환 중에도 전체 톤 통일감 유지) */
+  background:#c792ff;
+
+  min-height:100vh;
+  overflow-x:hidden;
+  position:relative;
+  isolation:isolate;
+}
+
+/* ✅ “보라 톤 전용 레이어” */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:-2;
+
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255,255,255,.26) 0, transparent 58%),
+    radial-gradient(circle at 88% 26%, rgba(255,255,255,.18) 0, transparent 60%),
+    radial-gradient(circle at 42% 92%, rgba(255,255,255,.14) 0, transparent 62%),
+    linear-gradient(135deg, #c792ff 0%, #ead9ff 55%, #b97cff 100%);
+
+  background-size: 260% 260%;
+  animation: gradientDrift 60s ease-in-out infinite;
+}
+
+/* ✅ “크림 톤 전용 레이어” (opacity로 천천히 덮었다가 다시 빠짐) */
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:-1;
+  opacity:0;
+
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255,255,255,.32) 0, transparent 58%),
+    radial-gradient(circle at 88% 26%, rgba(255,255,255,.22) 0, transparent 60%),
+    radial-gradient(circle at 42% 92%, rgba(255,255,255,.16) 0, transparent 62%),
+    linear-gradient(135deg, #fff6dd 0%, #fff0cf 55%, #ffe6b9 100%);
+
+  background-size: 260% 260%;
+  animation: gradientDrift 60s ease-in-out infinite, gradientFade 10s ease-in-out infinite;
+}
+
+@keyframes gradientFade{
+  0%{ opacity:0; }
+  50%{ opacity:1; }
+  100%{ opacity:0; }
+}
+
+@keyframes gradientDrift{
+  0%{ background-position:0% 50%; }
+  50%{ background-position:100% 50%; }
+  100%{ background-position:0% 50%; }
+}
+
+/* 모션 최소화 선호 */
+@media (prefers-reduced-motion: reduce){
+  body::before, body::after{ animation:none !important; }
+  body::after{ opacity:1; }
+}
+
+/* 🫧 비눗방울 */
+.bubbles{
+  position:fixed;
+  top:0; left:0; width:100%; height:100%;
+  pointer-events:none;
+  z-index:0;
+  overflow:hidden;
+}
+.bubble{
+  position:absolute;
+  bottom:-100px;
+  border-radius:50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.85), rgba(255,255,255,.08));
+  box-shadow: 0 0 12px rgba(255,255,255,.45);
+  animation: rise 15s infinite ease-in;
+  opacity:.55;
+}
+.bubble:nth-child(1){ width:40px; height:40px; left:10%; animation-duration:8s; }
+.bubble:nth-child(2){ width:22px; height:22px; left:20%; animation-duration:6s; animation-delay:1s; }
+.bubble:nth-child(3){ width:54px; height:54px; left:35%; animation-duration:10s; animation-delay:2s; }
+.bubble:nth-child(4){ width:86px; height:86px; left:50%; animation-duration:12s; animation-delay:0s; }
+.bubble:nth-child(5){ width:36px; height:36px; left:56%; animation-duration:7s; animation-delay:1s; }
+.bubble:nth-child(6){ width:46px; height:46px; left:66%; animation-duration:9s; animation-delay:3s; }
+.bubble:nth-child(7){ width:92px; height:92px; left:76%; animation-duration:14s; animation-delay:2s; }
+.bubble:nth-child(8){ width:26px; height:26px; left:86%; animation-duration:6s; animation-delay:4s; }
+
+@keyframes rise{
+  0%{ transform:translateY(0) scale(1); opacity:0; }
+  20%{ opacity:.78; }
+  100%{ transform:translateY(-120vh) scale(1.2); opacity:0; }
+}
+
+::-webkit-scrollbar{ width:8px; height:8px; }
+::-webkit-scrollbar-track{ background:rgba(255,255,255,.28); border-radius:4px; }
+::-webkit-scrollbar-thumb{ background:rgba(155,114,207,.46); border-radius:4px; }
+::-webkit-scrollbar-thumb:hover{ background:rgba(155,114,207,.75); }
+
+main{
+  position:relative;
+  z-index:1;
+  max-width:var(--page-max);
+  margin:0 auto;
+  padding:18px 20px 18px;
+}
+
+/* =========================
+   ✅ 상단 바(정렬/오버플로우 FIX v2)
+   ========================= */
+.topbar{
+  margin-bottom: var(--gap-layout);
+  display:grid;
+  grid-template-columns: var(--col-manual) var(--col-book) var(--col-req);
+  gap: var(--gap-layout);
+  justify-content:center;
+  align-items:stretch;
+}
+.topbar-surface{
+  grid-column: 1 / -1;
+  justify-self:stretch;
+  width:100%;
+  background: rgba(255,255,255,.58);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--glass-border);
+  border-radius: 26px;
+  box-shadow: var(--glass-shadow);
+  padding: var(--topbar-pad) 0;
+  overflow:hidden;
+}
+.topbar-grid{
+  display:grid;
+  grid-template-columns: var(--col-manual) var(--col-book) var(--col-req);
+  gap: var(--gap-layout);
+  align-items:center;
+  width:100%;
+}
+.topbar-left{
+  grid-column: 1 / 3;
+  min-width:0;
+  padding-left:20px;
+  padding-right:12px;
+}
+.topbar-right{
+  grid-column: 3 / 4;
+  min-width:0;
+  width:100%;
+  display:flex;
+  justify-content:flex-end;
+  padding-right:20px;
+}
+
+body.manual-hidden .topbar{
+  grid-template-columns: 1.25fr 0.85fr;
+  justify-content:stretch;
+}
+body.manual-hidden .topbar-grid{ grid-template-columns: 1.25fr 0.85fr; }
+body.manual-hidden .topbar-left{ grid-column: 1 / 2; padding-left:20px; padding-right:12px; }
+body.manual-hidden .topbar-right{ grid-column: 2 / 3; padding-right:20px; }
+
+.title-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:6px;
+}
+.title-row h1{
+  font-size:28px;
+  font-weight:900;
+  margin:0;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow: 0 2px 12px rgba(162,155,254,.28);
+  letter-spacing:-.6px;
+}
+.badge{
+  font-size:11px;
+  font-weight:800;
+  padding:5px 10px;
+  border-radius:999px;
+  background:#fff;
+  color:var(--primary-2);
+  box-shadow:0 2px 10px rgba(0,0,0,.05);
+  border:1px solid rgba(255,255,255,.7);
+}
+.subtitle{
+  font-size:14px;
+  color:var(--text-sub);
+  line-height:1.35;
+  font-weight:600;
+}
+.header-right{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+  max-width:100%;
+  min-width:0;
+}
+.status-pill{
+  font-size:12px;
+  font-weight:700;
+  padding:8px 12px;
+  border-radius:999px;
+  background: rgba(255,255,255,.7);
+  border:1px solid rgba(255,255,255,.95);
+  backdrop-filter: blur(6px);
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  max-width:100%;
+  min-width:0;
+  column-gap:8px;
+  row-gap:6px;
+  color:var(--text-sub);
+  box-shadow:0 2px 10px rgba(0,0,0,.04);
+}
+.status-pill b{ color: var(--text-main); font-weight:900; }
+.status-dot{
+  width:9px; height:9px;
+  border-radius:50%;
+  background:#10b981;
+  box-shadow:0 0 8px rgba(16,185,129,.65);
+}
+.mini-btn{
+  border:none;
+  border-radius:999px;
+  padding:7px 12px;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+  background: rgba(255,255,255,.92);
+  color: var(--primary-2);
+  border:1px solid rgba(155,114,207,.25);
+  box-shadow:0 2px 10px rgba(0,0,0,.05);
+  transition: transform .12s ease, box-shadow .18s ease;
+  white-space:nowrap;
+}
+.mini-btn:hover{ transform: translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.06); }
+.mini-btn:active{ transform: translateY(0); }
+.mini-btn.ghost{ background: rgba(255,255,255,.55); }
+.mini-btn.accent{
+  color:#8a4b10;
+  border-color: rgba(243,166,91,.35);
+  background: rgba(255,233,201,.7);
+}
+
+/* =========================
+   ✅ 레이아웃
+   ========================= */
+.layout{
+  display:grid;
+  grid-template-columns: var(--col-manual) var(--col-book) var(--col-req);
+  gap: var(--gap-layout);
+  justify-content:center;
+  align-items:stretch;
+}
+body.manual-hidden .layout{ grid-template-columns: 1.25fr 0.85fr; }
+body.manual-hidden #manualCard{ display:none; }
+
+/* =========================
+   ✅ 반응형
+   ========================= */
+@media (max-width: 1200px){
+  .layout{ grid-template-columns: 1fr 1fr; }
+  .layout > .card:nth-child(1){ grid-row: span 2; }
+  .topbar{ display:block; }
+  .topbar-surface{ width:100%; grid-column:auto; }
+  .topbar-grid{ grid-template-columns: 1fr 1fr; }
+  .topbar-right{
+    justify-self:stretch;
+    justify-content:flex-start;
+    margin-top:10px;
+  }
+  .header-right{ justify-content:flex-start; }
+  body.manual-hidden .topbar-grid{ grid-template-columns: 1fr 1fr; }
+  .topbar-surface{ padding: var(--topbar-pad) 18px; }
+  .topbar-left{ padding-left:0; padding-right:0; }
+  .topbar-right{ padding-right:0; }
+}
+@media (max-width: 900px){
+  .layout{ display:flex; flex-direction:column; gap: var(--gap-layout); }
+  .topbar{ display:block; }
+  .topbar-grid{ display:flex; flex-direction:column; gap:10px; align-items:stretch; }
+  .topbar-right{ justify-content:flex-start; }
+}
+
+/* =========================
+   ✅ 카드
+   ========================= */
+.card{
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border:1px solid var(--glass-border);
+  border-radius:24px;
+  padding:20px;
+  box-shadow: var(--glass-shadow);
+  display:flex;
+  flex-direction:column;
+  transition: transform .2s ease;
+  min-width:0;
+  min-height: 520px;
+}
+@media (min-width: 901px){
+  .layout > .card:first-child{
+    position:sticky;
+    top:18px;
+    z-index:10;
+    max-height: calc(100vh - 36px);
+    overflow:hidden;
+  }
+}
+.card-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:14px;
+  padding-bottom:12px;
+  border-bottom:1px solid rgba(0,0,0,.06);
+}
+.card-title{
+  font-size:18px;
+  font-weight:900;
+  color: var(--text-main);
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.card-sub{
+  font-size:13px;
+  color: var(--text-sub);
+  margin: -8px 0 14px 0;
+  line-height:1.45;
+  font-weight:600;
+}
+
+/* =========================
+   ✅ 컨트롤
+   ========================= */
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:14px;
+  background: rgba(255,255,255,.45);
+  padding:10px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.7);
+}
+.input,.select{
+  padding:9px 16px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.9);
+  background: rgba(255,255,255,.86);
+  font-family:inherit;
+  font-size:13px;
+  outline:none;
+  transition: all .18s;
+  flex-grow:1;
+  min-width:0;
+  color: var(--text-main);
+}
+.input::placeholder{ color: rgba(71,85,105,.72); font-weight:600; }
+.input:focus,.select:focus{
+  background:#fff;
+  box-shadow:0 0 0 3px rgba(155,114,207,.18);
+  border-color: var(--primary);
+}
+.btn{
+  border:none;
+  border-radius:999px;
+  padding:9px 16px;
+  font-size:13px;
+  font-weight:900;
+  cursor:pointer;
+  background: linear-gradient(135deg, var(--primary), #a29bfe);
+  color:#fff;
+  box-shadow:0 6px 16px rgba(108,92,231,.28);
+  transition: transform .1s, box-shadow .2s;
+}
+.btn:hover{ transform: translateY(-2px); box-shadow:0 10px 24px rgba(108,92,231,.34); }
+.btn:active{ transform: translateY(0); }
+.toggle-group{
+  display:inline-flex;
+  background: rgba(255,255,255,.55);
+  border-radius:999px;
+  padding:3px;
+  border:1px solid rgba(255,255,255,.75);
+}
+.toggle{
+  padding:7px 14px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+  color: var(--text-sub);
+  cursor:pointer;
+  transition: all .18s;
+}
+.toggle.active{
+  background:#fff;
+  color: var(--primary-2);
+  box-shadow:0 2px 8px rgba(0,0,0,.05);
+}
+
+/* ✅ 스크롤 영역 */
+.list{
+  flex:1 1 auto;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:4px;
+  scroll-behavior:smooth;
+  min-height:0;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
+/* ✅ 리스트 빈 상태 */
+.empty-state{
+  height:100%;
+  min-height: 220px;
+  border-radius:18px;
+  border:1px dashed rgba(0,0,0,.12);
+  background: rgba(255,255,255,.42);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  text-align:center;
+  color: var(--text-sub);
+}
+.empty-state .icon{ font-size:28px; margin-bottom:8px; }
+.empty-state .title{ font-weight:900; color: var(--text-main); margin-bottom:6px; }
+.empty-state .desc{
+  font-size:13px;
+  line-height:1.45;
+  font-weight:600;
+  color: var(--text-sub);
+  opacity:.95;
+}
+
+/* =========================
+   ✅ 곡/요청 행
+   ========================= */
+.song-row{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 16px;
+  margin-bottom:8px;
+  border-radius:16px;
+  background: rgba(255,255,255,.74);
+  border:1px solid rgba(255,255,255,.7);
+  transition: all .18s ease;
+  gap:12px;
+  touch-action: pan-y;
+}
+.song-row:hover{
+  background: rgba(255,255,255,.96);
+  transform: scale(1.01) translateX(2px);
+  box-shadow: 0 10px 20px rgba(0,0,0,.06);
+}
+.song-row.requested{
+  background: linear-gradient(to right, rgba(255,245,230,.78), rgba(255,255,255,.9));
+  border-left: 4px solid rgba(243,166,91,.95);
+  box-shadow: 0 10px 24px rgba(243,166,91,.16);
+}
+.song-main{ flex:1; min-width:0; }
+.song-title{
+  font-size:15px;
+  font-weight:900;
+  color: var(--text-main);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  margin-bottom:4px;
+}
+.song-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  font-size:12px;
+  color: var(--text-sub);
+  font-weight:650;
+}
+.tag{
+  background: rgba(108,92,231,.10);
+  color: #5b4ad3;
+  padding:2px 8px;
+  border-radius:8px;
+  font-size:11px;
+  font-weight:800;
+  border: 1px solid rgba(108,92,231,.18);
+}
+.tag.cat-all{ background:#EEF2FF; border-color:#C7D2FE; color:#334155; }
+.tag.cat-musical{ background:#FFE4E6; border-color:#FB7185; color:#9F1239; }
+.tag.cat-original{ background:#EDE9FE; border-color:#A78BFA; color:#5B21B6; }
+.tag.cat-jpop{ background:#DBEAFE; border-color:#60A5FA; color:#1E40AF; }
+.tag.cat-kpop{ background:#FAE8FF; border-color:#F0ABFC; color:#86198F; }
+.tag.cat-ost{ background:#FFEDD5; border-color:#FDBA74; color:#9A3412; }
+.tag.cat-pop{ background:#DCFCE7; border-color:#86EFAC; color:#166534; }
+
+.select:hover{ background:#F3EDFF; }
+.input:focus,.select:focus{
+  background:#fff;
+  border-color:#9B72CF;
+  box-shadow:0 0 0 3px rgba(155,114,207,.22);
+}
+.select option:checked{ background:#9B72CF; color:#FFFFFF; }
+.select option:hover{ background:#F3EDFF; }
+
+.song-actions{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:6px;
+}
+.song-btn{
+  background: rgba(0,0,0,.03);
+  border:1px solid rgba(0,0,0,.06);
+  color: var(--text-sub);
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+  transition: all .18s;
+}
+.song-btn:hover{
+  background: var(--primary);
+  color:#fff;
+  border-color: var(--primary);
+}
+.song-status-pill{
+  font-size:10px;
+  font-weight:900;
+  padding:3px 10px;
+  border-radius:999px;
+  background:#e2e8f0;
+  color:#334155;
+}
+.requested .song-status-pill{
+  background: rgba(255,233,201,.95);
+  color:#8a4b10;
+}
+body.compact-mode .song-row{ padding:9px 12px; }
+body.compact-mode .song-meta{ display:none; }
+
+/* =========================
+   ✅ Now Playing
+   ========================= */
+.now-playing{
+  margin-bottom: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(255,232,199,.95) 0%, rgba(247,216,232,.92) 100%);
+  color: var(--text-main);
+  box-shadow: 0 14px 30px rgba(243,166,91,.16);
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.75);
+}
+.now-playing::before{
+  content:"♫";
+  position:absolute; right:-6px; bottom:-22px;
+  font-size:110px;
+  opacity:.18;
+  color:#fff;
+  transform: rotate(-18deg);
+}
+.now-playing.empty{
+  background: rgba(255,255,255,.52);
+  border: 2px dashed rgba(0,0,0,.12);
+  box-shadow:none;
+  opacity:1;
+}
+.now-playing-label{
+  font-size:11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 900;
+  opacity:.72;
+  margin-bottom: 8px;
+}
+.now-playing-title{
+  font-size:18px;
+  font-weight: 950;
+  margin-bottom:4px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  position:relative;
+  z-index:1;
+}
+.now-playing-meta{
+  font-size:13px;
+  opacity:.9;
+  margin-bottom:12px;
+  position:relative;
+  z-index:1;
+  font-weight:650;
+}
+#nowPlayingDoneBtn{
+  background:#fff;
+  color:#8a4b10;
+  border:none;
+  padding:8px 14px;
+  border-radius:999px;
+  font-weight: 950;
+  box-shadow: 0 8px 18px rgba(0,0,0,.10);
+  position:relative;
+  z-index:1;
+  cursor:pointer;
+}
+#nowPlayingDoneBtn:disabled{
+  opacity:.5;
+  cursor:default;
+  box-shadow:none;
+}
+
+/* =========================
+   ✅ Footer
+   ========================= */
+footer{
+  text-align:center;
+  margin-top: 18px;
+  font-size:12px;
+  color: rgba(0,0,0,.40);
+  padding-bottom: 6px;
+}
+
+/* =========================
+   MANUAL (표 스타일)
+   ========================= */
+#manualList{
+  flex: 1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding: 10px 6px 12px;
+  touch-action: pan-y;
+  min-width:0;
+}
+.manual-sheet-wrap{
+  border-radius: 16px;
+  background: rgba(255,255,255,.94);
+  border: 1px solid rgba(0,0,0,.08);
+  box-shadow: 0 8px 18px rgba(0,0,0,.06);
+  padding: 22px 18px;
+  overflow:auto;
+  -webkit-overflow-scrolling: touch;
+}
+table.manual-sheet{
+  border-collapse: collapse;
+  table-layout: fixed;
+  background:#fff;
+  width:max-content;
+  min-width:0;
+  margin:0 auto;
+}
+table.manual-sheet td{
+  border: 1px solid var(--sheet-grid);
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.32;
+  vertical-align: top;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.manual-footer{
+  margin-top: 12px;
+  padding: 12px 12px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.45);
+  border: 1px solid rgba(255,255,255,.70);
+}
+.manual-footer .mf-title{
+  font-weight: 950;
+  color: var(--text-main);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.manual-footer .mf-grid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.manual-footer .mf-chip{
+  font-size: 11px;
+  font-weight: 900;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.86);
+  border: 1px solid rgba(155,114,207,.22);
+  color: var(--primary-2);
+  box-shadow: 0 2px 10px rgba(0,0,0,.04);
+}
+
+/* =========================
+   ✅ 로그인 모달
+   ========================= */
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background: rgba(0,0,0,.38);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  z-index:9999;
+}
+.modal{
+  width:min(420px, 100%);
+  background: rgba(255,255,255,.94);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,.92);
+  border-radius: 18px;
+  box-shadow: 0 18px 60px rgba(0,0,0,.20);
+  overflow:hidden;
+}
+.modal-header{
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.modal-title{
+  font-size: 14px;
+  font-weight: 950;
+  color: var(--text-main);
+}
+.modal-body{ padding: 14px 16px; }
+.modal-row{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-bottom:12px;
+}
+.modal-label{
+  font-size: 12px;
+  font-weight: 950;
+  color: var(--text-sub);
+}
+.modal-input{
+  width:100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.12);
+  outline:none;
+  font-size: 13px;
+  background: rgba(255,255,255,.97);
+}
+.modal-input:focus{
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(155,114,207,.18);
+}
+.modal-hint{
+  font-size: 12px;
+  color: rgba(0,0,0,.58);
+  line-height:1.35;
+  font-weight:600;
+}
+.modal-error{
+  display:none;
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  background: rgba(255,118,117,.12);
+  border: 1px solid rgba(255,118,117,.25);
+  color: rgba(180,60,60,1);
+  font-size: 12px;
+  font-weight: 950;
+}
+.modal-footer{
+  padding: 14px 16px;
+  border-top: 1px solid rgba(0,0,0,.06);
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+}
+.modal-btn{
+  border:none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 950;
+  cursor:pointer;
+}
+.modal-btn.cancel{
+  background: rgba(0,0,0,.06);
+  color: rgba(0,0,0,.70);
+}
+.modal-btn.ok{
+  background: linear-gradient(135deg, var(--primary), #a29bfe);
+  color:#fff;
+  box-shadow: 0 10px 26px rgba(108,92,231,.24);
+}
+
+/* =========================================================
+   ✅ 모바일: 왼쪽 짤림 방지 + Manual 접기
+   ========================================================= */
+@media (max-width: 900px){
+  /* ✅ 모바일 카드 기본: PC처럼 고정 높이 강제하지 말고 자연스럽게 */
+  .card{ 
+    min-height:auto; 
+    height:auto; 
+  }
+  .layout{ justify-content:stretch; }
+
+  /* ✅ [핵심] 노래 목록 섹터만 “적당히” 높이 제한 → 내부 리스트만 스크롤 */
+  #songsCard{
+    height: clamp(340px, 58vh, 600px);
+  }
+  /* 리스트가 카드 높이를 먹고, 안에서만 스크롤되도록 */
+  #songsCard #songList{
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto; /* 안전장치 (기존 .list에도 있지만 확실히) */
+  }
+
+  /* ===== 기존 manual 관련 ===== */
+  .manual-sheet-wrap{
+    width:100%;
+    max-width:100%;
+    overflow:auto;
+    padding: 18px 14px;
+  }
+  table.manual-sheet{
+    width:max-content;
+    min-width:0;
+    margin:0 auto;
+  }
+  #manualToggleBadge{
+    cursor:pointer;
+    user-select:none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body.manual-collapsed #manualList{ display:none; }
+  body.manual-collapsed #manualCard{ padding-bottom: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bubbles">
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+</div>
+
+<main>
+<header class="topbar">
+  <div class="topbar-surface">
+    <div class="topbar-grid">
+      <div class="topbar-left">
+        <div class="title-row">
+          <h1>✨ 모네 노래책 뷰어</h1>
+          <span class="badge">Live Sync</span>
+          <button class="mini-btn ghost" id="guideToggleBtn" type="button" aria-pressed="false">📘 가이드 숨김</button>
+        </div>
+        <div class="subtitle">즐거운 방송을 위한 신청곡 관리 매니저 🎵</div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="header-right">
+          <div class="status-pill" title="인증 상태">
+            <span class="status-dot"></span>
+            <span>System: <b id="authStatusText">Locked</b></span>
+          </div>
+
+          <div class="status-pill" title="시트 동기화 상태">
+            <span>Data: <b id="sheetStatus">로딩 중...</b></span>
+            <button class="mini-btn" id="loginBtn" type="button">로그인</button>
+            <button class="mini-btn accent" id="pwChangeBtn" type="button" style="display:none;">비번 변경</button>
+            <button class="mini-btn" id="logoutBtn" type="button" style="display:none;">로그아웃</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="layout">
+
+  <section class="card" id="manualCard">
+    <div class="card-header">
+      <div class="card-title">📘 이용 가이드</div>
+      <div class="badge" id="manualToggleBadge" role="button" tabindex="0" aria-controls="manualList" aria-expanded="true">Manual</div>
+    </div>
+
+    <div id="manualList">
+      <div class="empty-state">
+        <div>
+          <div class="icon">📘</div>
+          <div class="title">설명서를 불러오는 중…</div>
+          <div class="desc">시트의 Manual 영역을 동기화하고 있어요.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="manual-footer" aria-label="빠른 도움말">
+      <div class="mf-title">빠른 도움말</div>
+      <div class="mf-grid">
+        <div class="mf-chip">Ctrl+F로 빠른 검색</div>
+        <div class="mf-chip">가이드 숨김으로 2열 확장</div>
+        <div class="mf-chip">모바일: Manual 배지로 접기</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="songsCard">
+    <div class="card-header">
+      <div class="card-title">🎵 노래 목록</div>
+      <div class="badge" style="background:var(--primary-light); color:var(--primary-2)">Auto Load</div>
+    </div>
+    <p class="card-sub">Google Sheet에서 데이터를 자동으로 가져옵니다. (30초 주기 갱신)</p>
+
+    <div class="controls">
+      <input class="input" type="text" placeholder="🔍 곡명, 가수, 태그 검색..." id="searchInput" />
+
+      <select class="select" id="filterSelect" style="max-width:180px;">
+        <optgroup label="상태">
+          <option value="all" selected>전체 보기</option>
+          <option value="unrequested">미신청 곡</option>
+          <option value="requested">신청된 곡</option>
+        </optgroup>
+        <optgroup label="카테고리" id="categoryOptGroup">
+          <option value="cat:__all__">카테고리: 전체</option>
+        </optgroup>
+      </select>
+
+      <div class="toggle-group" id="viewToggle">
+        <div class="toggle active" data-mode="list">기본</div>
+        <div class="toggle" data-mode="compact">작게</div>
+      </div>
+
+      <button class="btn" id="reloadBtn">↻ 새로고침</button>
+    </div>
+
+    <div class="list" id="songList"></div>
+    <div class="empty-state" id="songEmptyMessage" style="display:none;">
+      <div>
+        <div class="icon">⚠️</div>
+        <div class="title">노래책 데이터를 불러오지 못했어요</div>
+        <div class="desc">잠시 후 다시 시도해 주세요.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="requestsCard">
+    <div class="card-header">
+      <div class="card-title">💌 신청곡 리스트</div>
+      <div class="badge" style="background:var(--accent-soft); color:#8a4b10">Request</div>
+    </div>
+
+    <div class="now-playing empty" id="nowPlayingCard">
+      <div class="now-playing-label">Now Playing</div>
+      <div class="now-playing-title" id="nowPlayingTitle">선택된 곡 없음</div>
+      <div class="now-playing-meta" id="nowPlayingMeta">대기 목록에서 '지금 부르기'를 선택하세요.</div>
+      <button id="nowPlayingDoneBtn" disabled>노래 완료</button>
+    </div>
+
+    <div class="controls" style="justify-content: space-between;">
+      <div class="toggle-group" id="requestTabToggle">
+        <div class="toggle active" data-tab="pending">대기 중</div>
+        <div class="toggle" data-tab="done">완료됨</div>
+      </div>
+      <button class="btn" id="clearRequestsBtn" style="background:#ff7675; box-shadow:0 6px 16px rgba(255,118,117,.25)">초기화</button>
+    </div>
+
+    <div class="list" id="requestList"></div>
+  </section>
+
+</section>
+
+<footer>MONE Interactive Songbook Viewer &copy; 2024</footer>
+</main>
+
+<div class="modal-backdrop" id="authModalBackdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+    <div class="modal-header">
+      <div class="modal-title" id="authModalTitle">관리자 인증</div>
+      <button class="mini-btn" id="authModalCloseBtn" type="button">닫기</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-hint" id="authModalHint">
+        버튼(신청/취소/지금부르기/초기화/노래완료)을 사용하려면 비밀번호가 필요합니다.
+      </div>
+
+      <div id="loginForm">
+        <div class="modal-row">
+          <div class="modal-label">비밀번호</div>
+          <input class="modal-input" id="loginPassword" type="password" autocomplete="current-password" placeholder="비밀번호 입력" />
+        </div>
+      </div>
+
+      <div id="changePwForm" style="display:none;">
+        <div class="modal-row">
+          <div class="modal-label">현재 비밀번호 (또는 마스터)</div>
+          <input class="modal-input" id="currentPassword" type="password" autocomplete="current-password" placeholder="현재 비밀번호" />
+        </div>
+        <div class="modal-row">
+          <div class="modal-label">새 비밀번호</div>
+          <input class="modal-input" id="newPassword" type="password" autocomplete="new-password" placeholder="새 비밀번호 (4~64자)" />
+        </div>
+        <div class="modal-row">
+          <div class="modal-label">새 비밀번호 확인</div>
+          <input class="modal-input" id="newPassword2" type="password" autocomplete="new-password" placeholder="한 번 더 입력" />
+        </div>
+      </div>
+
+      <div class="modal-error" id="authModalError">에러</div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="modal-btn cancel" id="authCancelBtn" type="button">취소</button>
+      <button class="modal-btn ok" id="authOkBtn" type="button">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const state = {
+    songs: [],
+    songByKey: new Map(),
+
+    filter: "all",
+    search: "",
+    viewMode: "list",
+    requestTab: "pending",
+    nowPlayingId: null,
+    nextRequestOrder: 1,
+    loading: false,
+
+    authenticated: false,
+    authMode: "login",
+    pendingAction: null,
+
+    manualHiddenDesktop: false,
+
+    // ✅ queue polling/patch 최적화
+    queueEtag: "",
+    lastQueueUpdatedAt: null,
+    lastQueue: null,
+
+    // ✅ songbook ETag
+    songbookEtag: "",
+    lastSongbookHash: "",
+
+    // ✅ 렌더 토큰 (chunk 렌더 취소용)
+    songRenderToken: 0,
+  };
+
+  const domCache = {
+    // key -> { row, statusEl, btnEl }
+    songRowByKey: new Map(),
+  };
+
+  function normalizeText(str) {
+    if (!str) return "";
+    return String(str).toLowerCase().trim();
+  }
+
+  function normalizeCatKey(cat) {
+    const s = String(cat ?? "").trim();
+    if (!s) return "";
+    const up = s.toUpperCase().replace(/\s+/g, "");
+    if (up.includes("JPOP")) return "jpop";
+    if (up.includes("KPOP")) return "kpop";
+    if (up.includes("OST"))  return "ost";
+    if (up === "POP" || up.includes("POP")) return "pop";
+    if (s.includes("전체")) return "all";
+    if (s.includes("뮤지컬")) return "musical";
+    if (s.includes("오리지널")) return "original";
+    return "";
+  }
+
+  function applyCategoryClassToTag(el, textValue) {
+    const k = normalizeCatKey(textValue);
+    if (k) el.classList.add("cat-" + k);
+  }
+
+  function songKey(song) {
+    return normalizeText(song.title) + "|" + normalizeText(song.artistRaw);
+  }
+
+  function getCookie(name) {
+    const m = document.cookie.match(new RegExp("(^|; )" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "=([^;]*)"));
+    return m ? decodeURIComponent(m[2]) : "";
+  }
+
+  function authHeaders(extra = {}) {
+    const csrf = getCookie("mone_csrf");
+    const h = { ...extra };
+    if (csrf) h["X-CSRF-Token"] = csrf;
+    return h;
+  }
+
+  async function authFetch(url, opts = {}) {
+    const o = { ...opts };
+    o.credentials = "include";
+    o.headers = { ...(opts.headers || {}) };
+    return fetch(url, o);
+  }
+
+  function setAuthUI(isAuthed) {
+    state.authenticated = !!isAuthed;
+    const t = document.getElementById("authStatusText");
+    const loginBtn = document.getElementById("loginBtn");
+    const pwBtn = document.getElementById("pwChangeBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    if (t) t.textContent = isAuthed ? "Ready" : "Locked";
+    if (loginBtn) loginBtn.style.display = isAuthed ? "none" : "inline-flex";
+    if (pwBtn) pwBtn.style.display = isAuthed ? "inline-flex" : "none";
+    if (logoutBtn) logoutBtn.style.display = isAuthed ? "inline-flex" : "none";
+
+    // ✅ 인증 상태가 바뀌면 폴링 템포도 바뀌니 즉시 재시작
+    try { startQueuePolling_({ immediate: true }); } catch(_) {}
+  }
+
+  async function checkAuth() {
+    try {
+      const r = await authFetch("/api/auth/me", { method: "GET" });
+      const j = await r.json().catch(() => null);
+      setAuthUI(!!j?.authenticated);
+      return !!j?.authenticated;
+    } catch (_) {
+      setAuthUI(false);
+      return false;
+    }
+  }
+
+  function openAuthModal(mode) {
+    state.authMode = mode || "login";
+    const bd = document.getElementById("authModalBackdrop");
+    const title = document.getElementById("authModalTitle");
+    const hint = document.getElementById("authModalHint");
+    const err = document.getElementById("authModalError");
+    const loginForm = document.getElementById("loginForm");
+    const changeForm = document.getElementById("changePwForm");
+
+    if (err) { err.style.display = "none"; err.textContent = ""; }
+
+    if (state.authMode === "login") {
+      if (title) title.textContent = "관리자 인증";
+      if (hint) hint.textContent = "버튼(신청/취소/지금부르기/초기화/노래완료)을 사용하려면 비밀번호가 필요합니다.";
+      if (loginForm) loginForm.style.display = "block";
+      if (changeForm) changeForm.style.display = "none";
+      const inp = document.getElementById("loginPassword");
+      if (inp) { inp.value = ""; setTimeout(() => inp.focus(), 10); }
+    } else {
+      if (title) title.textContent = "비밀번호 변경";
+      if (hint) hint.textContent = "현재 비밀번호(또는 마스터)로 확인 후 새 비밀번호로 변경합니다.";
+      if (loginForm) loginForm.style.display = "none";
+      if (changeForm) changeForm.style.display = "block";
+      const a = document.getElementById("currentPassword");
+      const b = document.getElementById("newPassword");
+      const c = document.getElementById("newPassword2");
+      if (a) a.value = "";
+      if (b) b.value = "";
+      if (c) c.value = "";
+      if (a) setTimeout(() => a.focus(), 10);
+    }
+
+    if (bd) bd.style.display = "flex";
+    if (bd) bd.setAttribute("aria-hidden", "false");
+  }
+
+  function closeAuthModal() {
+    const bd = document.getElementById("authModalBackdrop");
+    if (bd) bd.style.display = "none";
+    if (bd) bd.setAttribute("aria-hidden", "true");
+  }
+
+  function showAuthError(msg) {
+    const err = document.getElementById("authModalError");
+    if (!err) return;
+    err.textContent = msg || "오류가 발생했습니다.";
+    err.style.display = "block";
+  }
+
+  async function doLogin(password) {
+    try {
+      const r = await authFetch("/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j?.authenticated) return { ok: false };
+      setAuthUI(true);
+      return { ok: true };
+    } catch (_) {
+      return { ok: false };
+    }
+  }
+
+  async function doLogout() {
+    try {
+      const r = await authFetch("/api/auth/logout", {
+        method: "POST",
+        headers: authHeaders({ "content-type": "application/json" }),
+        body: JSON.stringify({}),
+      });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j?.ok) return false;
+      setAuthUI(false);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async function doChangePassword(currentPassword, newPassword) {
+    try {
+      const r = await authFetch("/api/auth/change-password", {
+        method: "POST",
+        headers: authHeaders({ "content-type": "application/json" }),
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j?.ok) return { ok: false, code: j?.error || "fail" };
+      return { ok: true };
+    } catch (_) {
+      return { ok: false, code: "network" };
+    }
+  }
+
+  async function requireAuthThen(actionFn) {
+    const ok = await checkAuth();
+    if (ok) return Promise.resolve(actionFn());
+    state.pendingAction = actionFn;
+    openAuthModal("login");
+  }
+
+  function blockHorizontalWheel(el) {
+    if (!el) return;
+    el.addEventListener("wheel", (e) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) e.preventDefault();
+    }, { passive: false });
+  }
+
+  const API_URL = "/api/songbook";
+  const QUEUE_URL = "/api/queue";
+
+  function coalesce(obj, keys) {
+    for (const k of keys) {
+      const v = obj?.[k];
+      if (v != null && String(v).trim() !== "") return String(v);
+    }
+    return "";
+  }
+
+  function normalizeTags(v) {
+    if (Array.isArray(v)) return v.map(x => String(x).trim()).filter(Boolean);
+    if (!v) return [];
+    return String(v).split(/[;,]/).map(x => x.trim()).filter(Boolean);
+  }
+
+  function splitArtists(artistRaw) {
+    const s = String(artistRaw ?? "").trim();
+    if (!s) return [];
+    return s.split(",").map(x => x.trim()).filter(Boolean);
+  }
+
+  function apiSongToSong(item, idx) {
+    const title = coalesce(item, ["title","곡명","제목","song","Song","Title"]);
+    const artistRaw = coalesce(item, ["artist","가수","아티스트","singer","Artist"]);
+    const lang = coalesce(item, ["lang","language","언어","Lang"]);
+    const url = coalesce(item, ["url","link","youtube","유튜브","링크","URL"]);
+    const category = coalesce(item, ["category","카테고리","분류","Category"]);
+    const flag = coalesce(item, ["flag","Flag","표시","mark","Mark"]);
+    const tags = normalizeTags(item?.tags ?? item?.tag ?? item?.genre ?? item?.장르 ?? item?.분류);
+
+    const artistTags = splitArtists(artistRaw);
+    const flagTags = flag ? [flag] : [];
+    const raw = (item?.raw && typeof item.raw === "object") ? item.raw : { ...item };
+
+    return {
+      id: idx,
+      title,
+      artistRaw,
+      artistTags,
+      lang,
+      url,
+      category,
+      tags,
+      flagTags,
+      requestStatus: "none",
+      requestOrder: null,
+      raw,
+    };
+  }
+
+  function updateSheetStatus(text) {
+    const el = document.getElementById("sheetStatus");
+    if (el) el.textContent = text;
+  }
+
+  // =========================
+  // ✅ Queue diff + patch (핵심)
+  // =========================
+  function normalizeQueue_(q) {
+    if (!q || typeof q !== "object") return { v: 1, updatedAt: null, nextOrder: 1, nowPlayingKey: null, items: {} };
+    return {
+      v: 1,
+      updatedAt: q.updatedAt ?? null,
+      nextOrder: Number(q.nextOrder ?? 1) || 1,
+      nowPlayingKey: q.nowPlayingKey ?? null,
+      items: (q.items && typeof q.items === "object") ? q.items : {},
+    };
+  }
+
+  function diffQueue_(prevQ, nextQ) {
+    const prev = normalizeQueue_(prevQ);
+    const next = normalizeQueue_(nextQ);
+
+    const changed = new Set();
+    const a = prev.items;
+    const b = next.items;
+
+    for (const k in a) {
+      const ai = a[k];
+      const bi = b[k];
+      if (!bi) { changed.add(k); continue; }
+      const as = String(ai?.status ?? "pending");
+      const bs = String(bi?.status ?? "pending");
+      const ao = Number(ai?.order ?? 0) || 0;
+      const bo = Number(bi?.order ?? 0) || 0;
+      if (as !== bs || ao !== bo) changed.add(k);
+    }
+    for (const k in b) {
+      if (!a[k]) changed.add(k);
+    }
+
+    const nowChanged = String(prev.nowPlayingKey ?? "") !== String(next.nowPlayingKey ?? "");
+    const nextOrderChanged = Number(prev.nextOrder ?? 0) !== Number(next.nextOrder ?? 0);
+
+    return { changedKeys: Array.from(changed), nowChanged, nextOrderChanged };
+  }
+
+  function applyQueuePatch_(nextQueue, diff) {
+    const q = normalizeQueue_(nextQueue);
+    const items = q.items;
+
+    let membershipChange = false;
+    const f = String(state.filter || "all");
+    const sensitive = (f === "requested" || f === "unrequested");
+
+    for (const key of diff.changedKeys) {
+      const song = state.songByKey.get(key);
+      if (!song) continue;
+
+      const old = song.requestStatus;
+      const it = items[key];
+
+      if (!it) {
+        song.requestStatus = "none";
+        song.requestOrder = null;
+      } else {
+        song.requestStatus = (String(it.status) === "done") ? "done" : "pending";
+        song.requestOrder = Number(it.order ?? null);
+      }
+
+      if (sensitive) {
+        const inOld = (f === "requested") ? (old === "pending") : (old === "none");
+        const inNew = (f === "requested") ? (song.requestStatus === "pending") : (song.requestStatus === "none");
+        if (inOld !== inNew) membershipChange = true;
+      }
+    }
+
+    state.nextRequestOrder = Number(q.nextOrder ?? state.nextRequestOrder ?? 1) || 1;
+
+    if (diff.nowChanged) {
+      const nowKey = String(q.nowPlayingKey ?? "") || null;
+      const np = nowKey ? state.songByKey.get(nowKey) : null;
+      state.nowPlayingId = np ? np.id : null;
+    }
+
+    return { membershipChange };
+  }
+
+  function updateSongRowUI_(song, entry) {
+    if (!song || !entry) return;
+    const isPending = song.requestStatus === "pending";
+    const isDone = song.requestStatus === "done";
+
+    entry.row.classList.toggle("requested", isPending);
+
+    if (entry.statusEl) {
+      if (isPending) entry.statusEl.textContent = "신청됨";
+      else if (isDone) entry.statusEl.textContent = "완료";
+      else entry.statusEl.textContent = "";
+
+      entry.statusEl.style.display = entry.statusEl.textContent ? "" : "none";
+    }
+    if (entry.btnEl) {
+      entry.btnEl.textContent = isPending ? "취소" : "신청";
+    }
+  }
+
+  function updateSongRowsByKeys_(keys) {
+    for (const k of keys) {
+      const entry = domCache.songRowByKey.get(k);
+      if (!entry) continue;
+      const song = state.songByKey.get(k);
+      if (!song) continue;
+      updateSongRowUI_(song, entry);
+    }
+  }
+
+  // =========================
+  // ✅ Queue load (ETag + updatedAt + patch + 최소 DOM 업데이트)
+  // =========================
+  async function loadQueueOnce(opts = {}) {
+    const force = !!opts.force;
+
+    try {
+      const headers = {};
+      if (!force && state.queueEtag) headers["If-None-Match"] = state.queueEtag;
+
+      const r = await fetch(QUEUE_URL, { cache: "no-store", headers });
+      if (r.status === 304) return;
+
+      const etag = r.headers.get("etag");
+      if (etag) state.queueEtag = etag;
+
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j?.ok) return;
+
+      const nextQueue = normalizeQueue_(j.queue);
+      const updatedAt = nextQueue.updatedAt ?? null;
+
+      if (!force && updatedAt && state.lastQueueUpdatedAt === updatedAt) return;
+
+      const diff = diffQueue_(state.lastQueue, nextQueue);
+
+      state.lastQueue = nextQueue;
+      state.lastQueueUpdatedAt = updatedAt;
+
+      const { membershipChange } = applyQueuePatch_(nextQueue, diff);
+
+      if (membershipChange) {
+        renderSongsFull_(); // 구성 변동 → chunk 전체 렌더
+      } else {
+        updateSongRowsByKeys_(diff.changedKeys); // ✅ 핵심: 변경된 row만 업데이트
+      }
+
+      // 요청/NowPlaying은 queue.items만 순회 (전체 songs 스캔 X)
+      renderRequests();
+      renderNowPlaying();
+      scheduleCardSync_();
+    } catch (_) {}
+  }
+
+  async function queueAction(type, key = "") {
+    const r = await authFetch("/api/queue/action", {
+      method: "POST",
+      headers: authHeaders({ "content-type": "application/json" }),
+      body: JSON.stringify({ type, key }),
+    });
+    const j = await r.json().catch(() => null);
+    if (!r.ok || !j?.ok) throw new Error(j?.error || "fail");
+
+    // ✅ 서버 응답 queue로 즉시 patch(폴링 기다리지 않음)
+    const nextQueue = normalizeQueue_(j.queue);
+    const diff = diffQueue_(state.lastQueue, nextQueue);
+    state.lastQueue = nextQueue;
+    state.lastQueueUpdatedAt = nextQueue.updatedAt ?? null;
+
+    const { membershipChange } = applyQueuePatch_(nextQueue, diff);
+    if (membershipChange) renderSongsFull_();
+    else updateSongRowsByKeys_(diff.changedKeys);
+
+    renderRequests();
+    renderNowPlaying();
+    scheduleCardSync_();
+  }
+
+  function rebuildFilterOptions() {
+    const select = document.getElementById("filterSelect");
+    if (!select) return;
+
+    const prev = String(select.value || "all");
+    const set = new Set();
+    state.songs.forEach((s) => {
+      const c = String(s?.category ?? "").trim();
+      if (c) set.add(c);
+    });
+    const categories = Array.from(set).sort((a, b) => a.localeCompare(b, "ko"));
+    select.innerHTML = "";
+
+    const ogState = document.createElement("optgroup");
+    ogState.label = "상태";
+
+    const optAll = document.createElement("option");
+    optAll.value = "all";
+    optAll.textContent = "전체 보기";
+    ogState.appendChild(optAll);
+
+    const optUn = document.createElement("option");
+    optUn.value = "unrequested";
+    optUn.textContent = "미신청 곡";
+    ogState.appendChild(optUn);
+
+    const optReq = document.createElement("option");
+    optReq.value = "requested";
+    optReq.textContent = "신청된 곡";
+    ogState.appendChild(optReq);
+
+    select.appendChild(ogState);
+
+    const ogCat = document.createElement("optgroup");
+    ogCat.label = "카테고리";
+
+    const optCatAll = document.createElement("option");
+    optCatAll.value = "cat:__all__";
+    optCatAll.textContent = "카테고리: 전체";
+    ogCat.appendChild(optCatAll);
+
+    categories.forEach((c) => {
+      const opt = document.createElement("option");
+      opt.value = "cat:" + c;
+      opt.textContent = c;
+      ogCat.appendChild(opt);
+    });
+
+    select.appendChild(ogCat);
+
+    const exists = Array.from(select.options).some(o => o.value === prev);
+    select.value = exists ? prev : "all";
+    state.filter = select.value;
+  }
+
+  /* =========================
+     ✅ Manual (표 렌더)
+     ========================= */
+  const MANUAL_ZOOM_DESKTOP = 1.06;
+  const MANUAL_ZOOM_MOBILE  = 1.00;
+
+  const _manualCache = { grid: null, flat: null };
+  let _manualRenderToken = 0;
+  let _manualFontsHooked = false;
+
+  function cacheManual_(grid, flat) {
+    _manualCache.grid = grid || null;
+    _manualCache.flat = Array.isArray(flat) ? flat : (flat || null);
+  }
+
+  function isMobile_() {
+    return window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
+  }
+
+  function isManualVisibleForRender_() {
+    if (isMobile_()) {
+      return !document.body.classList.contains("manual-collapsed");
+    }
+    return !document.body.classList.contains("manual-hidden");
+  }
+
+  function hookFontsReadyOnce_() {
+    if (_manualFontsHooked) return;
+    _manualFontsHooked = true;
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        if (isManualVisibleForRender_()) scheduleManualRender_("fonts");
+      }).catch(() => {});
+    }
+  }
+
+  function scheduleManualRender_(reason = "unknown") {
+    const token = ++_manualRenderToken;
+    const list = document.getElementById("manualList");
+    if (!list) return;
+    if (!isManualVisibleForRender_()) return;
+
+    const MIN_W = isMobile_() ? 120 : 220;
+    const MAX_TRIES = 24;
+
+    const step = (tries) => {
+      if (token !== _manualRenderToken) return;
+      if (!isManualVisibleForRender_()) return;
+
+      const el = document.getElementById("manualList");
+      if (!el) return;
+
+      const w = Math.ceil(el.getBoundingClientRect().width || 0);
+      if (w < MIN_W && tries < MAX_TRIES) {
+        requestAnimationFrame(() => step(tries + 1));
+        return;
+      }
+      if (w < MIN_W) {
+        setTimeout(() => {
+          if (token === _manualRenderToken && isManualVisibleForRender_()) {
+            scheduleManualRender_("retry:" + reason);
+          }
+        }, 120);
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (token !== _manualRenderToken) return;
+          if (!isManualVisibleForRender_()) return;
+          renderManual(_manualCache.grid, _manualCache.flat);
+        });
+      });
+    };
+
+    requestAnimationFrame(() => step(0));
+  }
+
+  function mulPx_(v, k) {
+    const n = parseFloat(String(v ?? "").replace("px", ""));
+    if (!isFinite(n)) return null;
+    return `${Math.max(1, Math.round(n * k))}px`;
+  }
+
+  function mulPadding_(pad, k) {
+    const parts = String(pad ?? "").trim().split(/\s+/);
+    if (!parts.length) return null;
+    const out = parts.map(p => mulPx_(p, k) ?? p);
+    return out.join(" ");
+  }
+
+  function applyCellStyle(td, style, zoomK) {
+    if (!style || typeof style !== "object") return;
+
+    const defaultBorder =
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--sheet-grid")
+        .trim() || "rgba(185,185,185,0.65)";
+
+    if (style.background) td.style.background = style.background;
+    if (style.color) td.style.color = style.color;
+    if (style.fontSize) td.style.fontSize = mulPx_(style.fontSize, zoomK) || style.fontSize;
+
+    if (style.fontWeight) td.style.fontWeight = style.fontWeight;
+    if (style.fontStyle) td.style.fontStyle = style.fontStyle;
+    if (style.textAlign) td.style.textAlign = style.textAlign;
+    if (style.verticalAlign) td.style.verticalAlign = style.verticalAlign;
+
+    const ws = style.whiteSpace;
+    td.style.whiteSpace = (ws === "pre" ? "pre-wrap" : (ws || "pre-wrap"));
+    td.style.wordBreak = "break-word";
+    td.style.overflow = "visible";
+    td.style.textOverflow = "clip";
+    td.style.lineHeight = "1.32";
+
+    if (style.padding) td.style.padding = mulPadding_(style.padding, zoomK) || style.padding;
+
+    td.style.borderTop    = style.borderTop    || `1px solid ${defaultBorder}`;
+    td.style.borderBottom = style.borderBottom || `1px solid ${defaultBorder}`;
+    td.style.borderLeft   = style.borderLeft   || `1px solid ${defaultBorder}`;
+    td.style.borderRight  = style.borderRight  || `1px solid ${defaultBorder}`;
+  }
+
+  function buildManualTableFromGrid(grid) {
+    const rowsTotal = Math.max(0, Number(grid?.rows ?? 0));
+    const colsTotal = Math.max(0, Number(grid?.cols ?? 0));
+    const cells = Array.isArray(grid?.cells) ? grid.cells : [];
+
+    const cellMap = new Map();
+    const covered = new Set();
+
+    for (const cell of cells) {
+      const r = Number(cell?.r ?? 0);
+      const c = Number(cell?.c ?? 0);
+      const rs = Math.max(1, Number(cell?.rowSpan ?? 1));
+      const cs = Math.max(1, Number(cell?.colSpan ?? 1));
+      const key = `${r},${c}`;
+
+      cellMap.set(key, { r, c, rowSpan: rs, colSpan: cs, text: cell?.text ?? "", style: cell?.style ?? {} });
+
+      for (let rr = r; rr < r + rs; rr++) {
+        for (let cc = c; cc < c + cs; cc++) {
+          if (rr === r && cc === c) continue;
+          covered.add(`${rr},${cc}`);
+        }
+      }
+    }
+
+    if (cellMap.size === 0) {
+      const wrap = document.createElement("div");
+      wrap.className = "manual-sheet-wrap";
+      wrap.innerHTML = "<div class='empty-state' style='min-height:220px;'><div><div class='icon'>📘</div><div class='title'>설명서(그리드)가 비어 있어요</div><div class='desc'>시트의 Manual 영역을 확인해 주세요.</div></div></div>";
+      return wrap;
+    }
+
+    const values = [...cellMap.values()];
+    const textCells = values.filter(v => String(v?.text ?? "").trim() !== "");
+    const basis = textCells.length ? textCells : values;
+
+    let minR = Infinity, minC = Infinity, maxR = -1, maxC = -1;
+    for (const v of basis) {
+      minR = Math.min(minR, v.r);
+      minC = Math.min(minC, v.c);
+      maxR = Math.max(maxR, v.r + v.rowSpan - 1);
+      maxC = Math.max(maxC, v.c + v.colSpan - 1);
+    }
+
+    const PAD_ROWS = 1;
+    const PAD_COLS = 0;
+
+    minR = Math.max(0, minR - PAD_ROWS);
+    minC = Math.max(0, minC - PAD_COLS);
+    maxR = Math.min(rowsTotal - 1, maxR + PAD_ROWS);
+    maxC = Math.min(colsTotal - 1, maxC + PAD_COLS);
+
+    const wrap = document.createElement("div");
+    wrap.className = "manual-sheet-wrap";
+
+    const table = document.createElement("table");
+    table.className = "manual-sheet";
+    table.style.tableLayout = "fixed";
+
+    const visibleCols = Math.max(1, (maxC - minC + 1));
+
+    const EMPTY_MIN = 22;
+    const TEXT_MIN  = 84;
+
+    const score = new Array(visibleCols).fill(0);
+    const hasText = new Array(visibleCols).fill(false);
+
+    for (const v of values) {
+      const text = String(v?.text ?? "").trim();
+      if (!text) continue;
+
+      const start = Math.max(minC, v.c);
+      const end = Math.min(maxC, v.c + (v.colSpan || 1) - 1);
+      const per = Math.ceil(text.length / Math.max(1, v.colSpan || 1));
+
+      for (let c = start; c <= end; c++) {
+        const idx = c - minC;
+        hasText[idx] = true;
+        score[idx] = Math.max(score[idx], per);
+      }
+    }
+
+    const widths = new Array(visibleCols).fill(0);
+    let baseSum = 0;
+    for (let i = 0; i < visibleCols; i++) {
+      widths[i] = hasText[i] ? TEXT_MIN : EMPTY_MIN;
+      baseSum += widths[i];
+    }
+
+    const manualList = document.getElementById("manualList");
+    const cwRaw = Number(manualList?.clientWidth ?? 0) || 0;
+    const cw = Math.max(360, cwRaw);
+
+    const CAP_W = isMobile_() ? 9999 : Math.min(720, cw - 24);
+    const targetW = Math.min(CAP_W, Math.max(360, cw - (isMobile_() ? 16 : 40)));
+
+    let remain = targetW - baseSum;
+
+    if (remain > 0) {
+      const wSum = score.reduce((a, b, i) => a + (hasText[i] ? Math.pow(Math.max(1, b), 0.8) : 0), 0);
+      if (wSum > 0) {
+        for (let i = 0; i < visibleCols; i++) {
+          if (!hasText[i]) continue;
+          const w = Math.pow(Math.max(1, score[i]), 0.8);
+          widths[i] += Math.floor(remain * (w / wSum));
+        }
+      }
+    }
+
+    const colgroup = document.createElement("colgroup");
+    for (let i = 0; i < visibleCols; i++) {
+      const col = document.createElement("col");
+      col.style.width = `${widths[i]}px`;
+      colgroup.appendChild(col);
+    }
+    table.appendChild(colgroup);
+
+    const sumW = widths.reduce((a, b) => a + b, 0);
+    table.style.width = `${sumW}px`;
+    table.style.minWidth = "0";
+
+    const tbody = document.createElement("tbody");
+    const zoomK = isMobile_() ? MANUAL_ZOOM_MOBILE : MANUAL_ZOOM_DESKTOP;
+
+    for (let r = minR; r <= maxR; r++) {
+      const tr = document.createElement("tr");
+
+      for (let c = minC; c <= maxC; c++) {
+        const key = `${r},${c}`;
+        if (covered.has(key)) continue;
+
+        const data = cellMap.get(key) || { text: "", style: {}, rowSpan: 1, colSpan: 1 };
+        const td = document.createElement("td");
+
+        if (data.rowSpan > 1) td.rowSpan = data.rowSpan;
+        if (data.colSpan > 1) td.colSpan = data.colSpan;
+
+        td.textContent = data.text ?? "";
+        applyCellStyle(td, data.style, zoomK);
+
+        tr.appendChild(td);
+      }
+
+      tbody.appendChild(tr);
+    }
+
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    return wrap;
+  }
+
+  function renderManual(manualGrid, manualFlat) {
+    const list = document.getElementById("manualList");
+    if (!list) return;
+
+    list.innerHTML = "";
+
+    if (manualGrid && manualGrid.rows && manualGrid.cols) {
+      try {
+        list.appendChild(buildManualTableFromGrid(manualGrid));
+        scheduleCardSync_();
+        return;
+      } catch (e) {
+        console.error("manualGrid render failed:", e);
+      }
+    }
+
+    const manual = Array.isArray(manualFlat) ? manualFlat : [];
+    if (manual.length === 0) {
+      list.innerHTML =
+        "<div class='empty-state'><div><div class='icon'>📘</div><div class='title'>설명서가 비어 있어요</div><div class='desc'>시트에서 Manual 영역을 채우면 여기에 표시돼요.</div></div></div>";
+      scheduleCardSync_();
+      return;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "manual-sheet-wrap";
+
+    const div = document.createElement("div");
+    div.style.padding = "8px";
+
+    manual.forEach((m) => {
+      const line = document.createElement("div");
+      const st = m?.style || {};
+      line.textContent = m?.text ?? "";
+      line.style.whiteSpace = "pre-wrap";
+      line.style.padding = "8px 10px";
+      line.style.border = "1px solid rgba(185,185,185,0.45)";
+      line.style.borderRadius = "10px";
+      line.style.marginBottom = "8px";
+      line.style.background = st.background || "rgba(255,255,255,0.98)";
+      if (st.fontSize) line.style.fontSize = st.fontSize + "px";
+      if (st.bold) line.style.fontWeight = "800";
+      if (st.color) line.style.color = st.color;
+      div.appendChild(line);
+    });
+
+    wrap.appendChild(div);
+    list.appendChild(wrap);
+    scheduleCardSync_();
+  }
+
+  // =========================
+  // ✅ Songbook load (ETag + 최소 작업)
+  // =========================
+  async function loadSheet(showStatusText = true) {
+    if (state.loading) return;
+    state.loading = true;
+
+    const songListEl = document.getElementById("songList");
+    const songEmptyMessage = document.getElementById("songEmptyMessage");
+
+    if (showStatusText) {
+      updateSheetStatus("동기화 중...");
+      songListEl.innerHTML =
+        "<div class='empty-state'><div><div class='icon'>⏳</div><div class='title'>로딩 중…</div><div class='desc'>시트 데이터를 불러오고 있어요.</div></div></div>";
+      songEmptyMessage.style.display = "none";
+    }
+
+    try {
+      const headers = {};
+      if (state.songbookEtag) headers["If-None-Match"] = state.songbookEtag;
+
+      const res = await fetch(API_URL, { headers });
+      if (res.status === 304) {
+        // 변경 없음 → UI 재렌더 불필요
+        updateSheetStatus("최신 상태(변경 없음)");
+        return;
+      }
+
+      if (!res.ok) throw new Error("API HTTP " + res.status);
+
+      const etag = res.headers.get("etag");
+      if (etag) state.songbookEtag = etag;
+
+      const data = await res.json();
+      const apiSongs = Array.isArray(data.songs) ? data.songs : [];
+
+      const prevNowKey =
+        state.nowPlayingId != null
+          ? songKey(state.songs.find((s) => s.id === state.nowPlayingId) || {})
+          : null;
+
+      const songs = apiSongs
+        .map((item, idx) => apiSongToSong(item, idx))
+        .filter((s) => s.title && s.title.trim());
+
+      state.songs = songs;
+      state.songByKey = new Map();
+      for (const s of state.songs) state.songByKey.set(songKey(s), s);
+
+      // ✅ queue가 이미 있으면 상태 재적용 (전체 스캔 X: queue.items 기준)
+      if (state.lastQueue) {
+        const q = normalizeQueue_(state.lastQueue);
+        // 초기화
+        for (const s of state.songs) { s.requestStatus = "none"; s.requestOrder = null; }
+        // queue.items만 순회
+        for (const k in q.items) {
+          const song = state.songByKey.get(k);
+          if (!song) continue;
+          const it = q.items[k];
+          song.requestStatus = (String(it.status) === "done") ? "done" : "pending";
+          song.requestOrder = Number(it.order ?? null);
+        }
+        // nowPlaying remap
+        const nowKey = String(q.nowPlayingKey ?? "") || null;
+        const np = nowKey ? state.songByKey.get(nowKey) : null;
+        state.nowPlayingId = np ? np.id : null;
+        state.nextRequestOrder = Number(q.nextOrder ?? state.nextRequestOrder ?? 1) || 1;
+      }
+
+      rebuildFilterOptions();
+
+      cacheManual_(data.manualGrid, data.manual);
+      if (isManualVisibleForRender_()) scheduleManualRender_("loadSheet");
+
+      if (songs.length === 0) {
+        songListEl.innerHTML = "";
+        songEmptyMessage.style.display = "block";
+        updateSheetStatus("완료 (곡 없음)");
+      } else {
+        songEmptyMessage.style.display = "none";
+        updateSheetStatus("최신 상태 (" + songs.length + "곡)");
+      }
+
+      // ✅ 전체 렌더는 여기서 1회(Chunk)
+      renderAll();
+    } catch (err) {
+      console.error(err);
+      updateSheetStatus("불러오기 실패");
+      songEmptyMessage.style.display = "block";
+      document.getElementById("songList").innerHTML = "";
+      const manualList = document.getElementById("manualList");
+      if (manualList) {
+        manualList.innerHTML =
+          "<div class='empty-state'><div><div class='icon'>⚠️</div><div class='title'>설명서를 불러오지 못했어요</div><div class='desc'>네트워크/시트 상태를 확인해 주세요.</div></div></div>";
+      }
+    } finally {
+      state.loading = false;
+      scheduleCardSync_();
+    }
+  }
+
+  function getFilteredSongs() {
+    const q = normalizeText(state.search);
+    const f = String(state.filter || "all");
+
+    return state.songs.filter((song) => {
+      if (f === "requested" && song.requestStatus !== "pending") return false;
+      if (f === "unrequested" && song.requestStatus !== "none") return false;
+
+      if (f.startsWith("cat:")) {
+        const want = f.slice(4);
+        if (want !== "__all__") {
+          const have = String(song?.category ?? "").trim();
+          if (have !== want) return false;
+        }
+      }
+
+      if (!q) return true;
+
+      const haystack =
+        normalizeText(song.title) + " " +
+        normalizeText(song.artistRaw) + " " +
+        normalizeText(song.artistTags.join(" ")) + " " +
+        normalizeText(song.category) + " " +
+        normalizeText(song.tags.join(" ")) + " " +
+        normalizeText(song.flagTags.join(" "));
+
+      return haystack.includes(q);
+    });
+  }
+
+  function createSongRow_(song) {
+    const row = document.createElement("article");
+    const key = songKey(song);
+    row.className = "song-row" + (song.requestStatus === "pending" ? " requested" : "");
+    row.dataset.songKey = key;
+    row.dataset.songId = song.id;
+
+    const main = document.createElement("div");
+    main.className = "song-main";
+
+    const titleEl = document.createElement("div");
+    titleEl.className = "song-title";
+    titleEl.textContent = song.title;
+    main.appendChild(titleEl);
+
+    const meta = document.createElement("div");
+    meta.className = "song-meta";
+
+    if (song.category) {
+      const cat = document.createElement("span");
+      cat.className = "tag";
+      cat.textContent = song.category;
+      applyCategoryClassToTag(cat, song.category);
+      meta.appendChild(cat);
+    }
+
+    (song.artistTags || []).forEach((a) => {
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = a;
+      applyCategoryClassToTag(tag, a);
+      meta.appendChild(tag);
+    });
+
+    (song.tags || []).forEach((t) => {
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = t;
+      applyCategoryClassToTag(tag, t);
+      meta.appendChild(tag);
+    });
+
+    (song.flagTags || []).forEach((f) => {
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = f;
+      applyCategoryClassToTag(tag, f);
+      meta.appendChild(tag);
+    });
+
+    if (song.url) {
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.style.background = "rgba(243,166,91,.92)";
+      tag.style.borderColor = "rgba(243,166,91,.92)";
+      tag.style.color = "#fff";
+      tag.textContent = "▶";
+      meta.appendChild(tag);
+    }
+
+    main.appendChild(meta);
+
+    const actions = document.createElement("div");
+    actions.className = "song-actions";
+
+    const statusPill = document.createElement("span");
+    statusPill.className = "song-status-pill";
+    if (song.requestStatus === "pending") statusPill.textContent = "신청됨";
+    else if (song.requestStatus === "done") statusPill.textContent = "완료";
+    else statusPill.textContent = "";
+    if (!statusPill.textContent) statusPill.style.display = "none";
+
+    actions.appendChild(statusPill);
+
+    const btn = document.createElement("button");
+    btn.className = "song-btn";
+    btn.textContent = song.requestStatus === "pending" ? "취소" : "신청";
+    btn.addEventListener("click", () => requireAuthThen(() => toggleRequest(song.id)));
+
+    actions.appendChild(btn);
+
+    row.appendChild(main);
+    row.appendChild(actions);
+
+    domCache.songRowByKey.set(key, { row, statusEl: statusPill, btnEl: btn });
+    return row;
+  }
+
+  // ✅ 핵심: 2000~5000곡도 멈추지 않게 chunk 렌더
+  function renderSongsFull_() {
+    const container = document.getElementById("songList");
+    const list = getFilteredSongs();
+    const token = ++state.songRenderToken;
+
+    domCache.songRowByKey.clear();
+    container.innerHTML = "";
+
+    if (!list.length) {
+      container.innerHTML =
+        "<div class='empty-state'><div><div class='icon'>🔎</div><div class='title'>검색 결과가 없어요</div><div class='desc'>키워드를 바꾸거나 필터를 ‘전체 보기’로 바꿔보세요.</div></div></div>";
+      scheduleCardSync_();
+      return;
+    }
+
+    let i = 0;
+    const CHUNK = 140;
+
+    const step = () => {
+      if (token !== state.songRenderToken) return;
+
+      const frag = document.createDocumentFragment();
+      for (let n = 0; n < CHUNK && i < list.length; n++, i++) {
+        frag.appendChild(createSongRow_(list[i]));
+      }
+      container.appendChild(frag);
+
+      if (i < list.length) requestAnimationFrame(step);
+      else scheduleCardSync_();
+    };
+
+    requestAnimationFrame(step);
+  }
+
+  // =========================
+  // ✅ Requests: queue.items만 순회 (O(M))
+  // =========================
+  function getRequestedSongsFromQueue_(tab) {
+    const q = normalizeQueue_(state.lastQueue);
+    const items = q.items;
+    const arr = [];
+
+    for (const k in items) {
+      const it = items[k];
+      const st = (String(it.status) === "done") ? "done" : "pending";
+      if (st !== tab) continue;
+
+      const song = state.songByKey.get(k);
+      if (!song) continue;
+
+      arr.push({ song, order: Number(it.order ?? 0) || 0, key: k });
+    }
+
+    arr.sort((a, b) => (a.order - b.order) || (a.key < b.key ? -1 : 1));
+    return arr.map(x => x.song);
+  }
+
+  function renderRequests() {
+    const listEl = document.getElementById("requestList");
+    const tab = state.requestTab;
+
+    const songs = getRequestedSongsFromQueue_(tab);
+
+    listEl.innerHTML = "";
+
+    if (!songs.length) {
+      const label = tab === "pending" ? "대기 중인 신청곡이 없어요" : "완료된 곡이 아직 없어요";
+      const desc  = tab === "pending"
+        ? "왼쪽 노래 목록에서 ‘신청’을 누르면 여기에 쌓여요."
+        : "대기 목록에서 ‘지금 부르기’ → ‘노래 완료’로 이동돼요.";
+
+      listEl.innerHTML =
+        "<div class='empty-state'><div><div class='icon'>💌</div><div class='title'>" + label + "</div><div class='desc'>" + desc + "</div></div></div>";
+      scheduleCardSync_();
+      return;
+    }
+
+    songs.forEach((song) => {
+      const row = document.createElement("article");
+      row.className = "song-row requested";
+
+      const main = document.createElement("div");
+      main.className = "song-main";
+
+      const title = document.createElement("div");
+      title.className = "song-title";
+      title.textContent = song.title;
+      main.appendChild(title);
+
+      const meta = document.createElement("div");
+      meta.className = "song-meta";
+
+      if (song.category) {
+        const cat = document.createElement("span");
+        cat.className = "tag";
+        cat.textContent = song.category;
+        applyCategoryClassToTag(cat, song.category);
+        meta.appendChild(cat);
+      }
+
+      (song.artistTags || []).forEach((a) => {
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = a;
+        applyCategoryClassToTag(tag, a);
+        meta.appendChild(tag);
+      });
+
+      (song.flagTags || []).forEach((f) => {
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = f;
+        applyCategoryClassToTag(tag, f);
+        meta.appendChild(tag);
+      });
+
+      main.appendChild(meta);
+
+      const actions = document.createElement("div");
+      actions.className = "song-actions";
+
+      const status = document.createElement("span");
+      status.className = "song-status-pill";
+      status.textContent = tab === "pending" ? "Waiting" : "Done";
+      actions.appendChild(status);
+
+      if (tab === "pending") {
+        const btnPlay = document.createElement("button");
+        btnPlay.className = "song-btn";
+        btnPlay.style.background = "var(--primary)";
+        btnPlay.style.color = "#fff";
+        btnPlay.textContent = "지금 부르기";
+        btnPlay.addEventListener("click", () => requireAuthThen(() => setNowPlaying(song.id)));
+        actions.appendChild(btnPlay);
+      }
+
+      row.appendChild(main);
+      row.appendChild(actions);
+      listEl.appendChild(row);
+    });
+
+    scheduleCardSync_();
+  }
+
+  function renderNowPlaying() {
+    const card = document.getElementById("nowPlayingCard");
+    const titleEl = document.getElementById("nowPlayingTitle");
+    const metaEl = document.getElementById("nowPlayingMeta");
+    const btnDone = document.getElementById("nowPlayingDoneBtn");
+
+    const song =
+      state.nowPlayingId != null
+        ? state.songs.find((s) => s.id === state.nowPlayingId)
+        : null;
+
+    if (!song) {
+      card.classList.add("empty");
+      titleEl.textContent = "선택된 곡 없음";
+      metaEl.textContent = "대기 목록에서 '지금 부르기'를 선택하세요.";
+      btnDone.disabled = true;
+      scheduleCardSync_();
+      return;
+    }
+
+    card.classList.remove("empty");
+    titleEl.textContent = song.title;
+    metaEl.textContent = "🎤 On Stage";
+    btnDone.disabled = false;
+    scheduleCardSync_();
+  }
+
+  function renderAll() {
+    renderSongsFull_();
+    renderRequests();
+    renderNowPlaying();
+    scheduleCardSync_();
+  }
+
+  async function toggleRequest(songId) {
+    const song = state.songs.find((s) => s.id === songId);
+    if (!song) return;
+    try {
+      await queueAction("toggle", songKey(song));
+    } catch (e) {
+      alert("요청 처리 실패: " + (e?.message || "error"));
+    }
+  }
+
+  async function setNowPlaying(songId) {
+    const song = state.songs.find((s) => s.id === songId);
+    if (!song) return;
+    try {
+      await queueAction("nowPlaying", songKey(song));
+    } catch (e) {
+      alert("요청 처리 실패: " + (e?.message || "error"));
+    }
+  }
+
+  async function markNowPlayingDone() {
+    try {
+      await queueAction("done", "");
+    } catch (e) {
+      alert("완료 처리 실패: " + (e?.message || "error"));
+    }
+  }
+
+  async function clearRequests() {
+    try {
+      await queueAction("clear", "");
+    } catch (e) {
+      alert("초기화 실패: " + (e?.message || "error"));
+    }
+  }
+
+  function initWheelBlocks_() {
+    blockHorizontalWheel(document.getElementById("songList"));
+    blockHorizontalWheel(document.getElementById("requestList"));
+    blockHorizontalWheel(document.getElementById("manualList"));
+  }
+
+  function setManualCollapsed_(collapsed) {
+    const badge = document.getElementById("manualToggleBadge");
+    if (!isMobile_()) {
+      document.body.classList.remove("manual-collapsed");
+      if (badge) badge.setAttribute("aria-expanded", "true");
+      return;
+    }
+    document.body.classList.toggle("manual-collapsed", !!collapsed);
+    if (badge) badge.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    if (!collapsed) scheduleManualRender_("mobileExpand");
+  }
+
+  function setManualHiddenDesktop_(hidden) {
+    const isMob = isMobile_();
+    const guideBtn = document.getElementById("guideToggleBtn");
+    const badge = document.getElementById("manualToggleBadge");
+
+    if (isMob) {
+      document.body.classList.remove("manual-hidden");
+      if (guideBtn) {
+        guideBtn.textContent = document.body.classList.contains("manual-collapsed") ? "📘 가이드 펼치기" : "📘 가이드 접기";
+        guideBtn.setAttribute("aria-pressed", document.body.classList.contains("manual-collapsed") ? "true" : "false");
+      }
+      if (badge) badge.textContent = "Manual";
+      return;
+    }
+
+    const wasHidden = document.body.classList.contains("manual-hidden");
+
+    document.body.classList.toggle("manual-hidden", !!hidden);
+    state.manualHiddenDesktop = !!hidden;
+
+    if (guideBtn) {
+      guideBtn.textContent = hidden ? "📘 가이드 보이기" : "📘 가이드 숨김";
+      guideBtn.setAttribute("aria-pressed", hidden ? "true" : "false");
+    }
+
+    if (badge) badge.textContent = "Manual";
+
+    if (wasHidden && !hidden) scheduleManualRender_("desktopShow");
+    scheduleCardSync_();
+  }
+
+  function toggleGuide_() {
+    if (isMobile_()) {
+      const collapsed = !document.body.classList.contains("manual-collapsed");
+      setManualCollapsed_(collapsed);
+      try { localStorage.setItem("mone_manual_collapsed_mobile", collapsed ? "1" : "0"); } catch(_) {}
+      setManualHiddenDesktop_(false);
+      scheduleCardSync_();
+      return;
+    }
+
+    const hidden = !document.body.classList.contains("manual-hidden");
+    setManualHiddenDesktop_(hidden);
+    try { localStorage.setItem("mone_manual_hidden_desktop", hidden ? "1" : "0"); } catch(_) {}
+    scheduleCardSync_();
+  }
+
+  /* =========================================================
+     ✅ 카드 높이 동기화(데스크톱만)
+     ========================================================= */
+  let _cardSyncRaf = 0;
+
+  function scheduleCardSync_() {
+    if (_cardSyncRaf) return;
+    _cardSyncRaf = requestAnimationFrame(() => {
+      _cardSyncRaf = 0;
+      syncCardHeights_();
+    });
+  }
+
+  function syncCardHeights_() {
+    const manual = document.getElementById("manualCard");
+    const songs  = document.getElementById("songsCard");
+    const req    = document.getElementById("requestsCard");
+    if (!songs || !req) return;
+
+    if (isMobile_()) {
+      if (manual) manual.style.height = "";
+      songs.style.height = "";
+      req.style.height = "";
+      return;
+    }
+
+    if (manual) manual.style.height = "";
+    songs.style.height = "";
+    req.style.height = "";
+
+    const CAP = 950;
+    const h0 = Math.ceil(req.getBoundingClientRect().height);
+    const h = Math.min(CAP, h0);
+    if (!h) return;
+
+    const px = `${h}px`;
+    req.style.height = px;
+    songs.style.height = px;
+
+    if (manual && !document.body.classList.contains("manual-hidden")) {
+      manual.style.height = px;
+    }
+  }
+
+  // =========================
+  // ✅ Queue polling (가변 + 탭 숨김 느리게)
+  // =========================
+  let _queuePollTimer = null;
+
+  function getQueuePollMs_() {
+    if (document.hidden) return 30000;
+    return state.authenticated ? 4000 : 8000;
+  }
+
+  function stopQueuePolling_() {
+    if (_queuePollTimer) clearTimeout(_queuePollTimer);
+    _queuePollTimer = null;
+  }
+
+  function startQueuePolling_(opts = {}) {
+    const immediate = !!opts.immediate;
+    stopQueuePolling_();
+
+    if (immediate) loadQueueOnce({ force: true }).catch(() => {});
+    const tick = async () => {
+      await loadQueueOnce();
+      _queuePollTimer = setTimeout(tick, getQueuePollMs_());
+    };
+    _queuePollTimer = setTimeout(tick, getQueuePollMs_());
+  }
+
+  window.addEventListener("DOMContentLoaded", async () => {
+    const searchInput = document.getElementById("searchInput");
+    const filterSelect = document.getElementById("filterSelect");
+    const viewToggle = document.getElementById("viewToggle");
+    const reloadBtn = document.getElementById("reloadBtn");
+    const requestTabToggle = document.getElementById("requestTabToggle");
+    const clearRequestsBtn = document.getElementById("clearRequestsBtn");
+    const nowPlayingDoneBtn = document.getElementById("nowPlayingDoneBtn");
+
+    const loginBtn = document.getElementById("loginBtn");
+    const pwChangeBtn = document.getElementById("pwChangeBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    const bd = document.getElementById("authModalBackdrop");
+    const closeBtn = document.getElementById("authModalCloseBtn");
+    const cancelBtn = document.getElementById("authCancelBtn");
+    const okBtn = document.getElementById("authOkBtn");
+
+    const manualToggleBadge = document.getElementById("manualToggleBadge");
+    const guideToggleBtn = document.getElementById("guideToggleBtn");
+
+    initWheelBlocks_();
+
+    try {
+      const m1 = localStorage.getItem("mone_manual_hidden_desktop");
+      const m2 = localStorage.getItem("mone_manual_collapsed_mobile");
+      if (m2 === "1") document.body.classList.add("manual-collapsed");
+      if (m1 === "1") document.body.classList.add("manual-hidden");
+    } catch(_) {}
+
+    setManualHiddenDesktop_(document.body.classList.contains("manual-hidden"));
+    hookFontsReadyOnce_();
+
+    await checkAuth();
+
+    // ✅ queue 폴링 시작
+    startQueuePolling_({ immediate: true });
+
+    document.addEventListener("visibilitychange", () => {
+      startQueuePolling_({ immediate: !document.hidden });
+    });
+    window.addEventListener("focus", () => startQueuePolling_({ immediate: true }));
+    window.addEventListener("blur", () => startQueuePolling_({ immediate: false }));
+
+    if (manualToggleBadge) {
+      const toggle = () => toggleGuide_();
+      manualToggleBadge.addEventListener("click", toggle);
+      manualToggleBadge.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+      });
+    }
+    if (guideToggleBtn) guideToggleBtn.addEventListener("click", toggleGuide_);
+
+    window.addEventListener("resize", () => {
+      if (isMobile_()) {
+        document.body.classList.remove("manual-hidden");
+        setManualHiddenDesktop_(false);
+      } else {
+        setManualHiddenDesktop_(document.body.classList.contains("manual-hidden"));
+        document.body.classList.remove("manual-collapsed");
+      }
+
+      if (isManualVisibleForRender_()) scheduleManualRender_("resize");
+      scheduleCardSync_();
+    });
+
+    if (loginBtn) loginBtn.addEventListener("click", () => { state.pendingAction = null; openAuthModal("login"); });
+    if (pwChangeBtn) pwChangeBtn.addEventListener("click", () => { state.pendingAction = null; openAuthModal("change"); });
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
+        const ok = confirm("로그아웃할까요?");
+        if (!ok) return;
+        const done = await doLogout();
+        if (!done) alert("로그아웃 실패");
+      });
+    }
+
+    function onCloseModal() {
+      closeAuthModal();
+      state.pendingAction = null;
+    }
+    if (closeBtn) closeBtn.addEventListener("click", onCloseModal);
+    if (cancelBtn) cancelBtn.addEventListener("click", onCloseModal);
+    if (bd) {
+      bd.addEventListener("click", (e) => {
+        if (e.target === bd) onCloseModal();
+      });
+    }
+
+    if (okBtn) {
+      okBtn.addEventListener("click", async () => {
+        const err = document.getElementById("authModalError");
+        if (err) { err.style.display = "none"; err.textContent = ""; }
+
+        if (state.authMode === "login") {
+          const pw = document.getElementById("loginPassword")?.value || "";
+          if (!pw.trim()) return showAuthError("비밀번호를 입력해줘.");
+          const r = await doLogin(pw);
+          if (!r.ok) return showAuthError("비밀번호가 올바르지 않아.");
+          closeAuthModal();
+
+          const act = state.pendingAction;
+          state.pendingAction = null;
+          if (typeof act === "function") {
+            try { await act(); } catch (e) { alert("작업 실패: " + (e?.message || "error")); }
+          }
+          scheduleCardSync_();
+          return;
+        }
+
+        const cur = document.getElementById("currentPassword")?.value || "";
+        const np1 = document.getElementById("newPassword")?.value || "";
+        const np2 = document.getElementById("newPassword2")?.value || "";
+
+        if (!cur.trim()) return showAuthError("현재 비밀번호(또는 마스터)를 입력해줘.");
+        if (!np1.trim() || np1.length < 4) return showAuthError("새 비밀번호는 4자 이상이어야 해.");
+        if (np1 !== np2) return showAuthError("새 비밀번호 확인이 일치하지 않아.");
+
+        const r = await doChangePassword(cur, np1);
+        if (!r.ok) {
+          if (r.code === "reserved") return showAuthError("이 비밀번호는 사용할 수 없어.");
+          if (r.code === "invalid") return showAuthError("현재 비밀번호가 올바르지 않아.");
+          return showAuthError("변경 실패. 다시 시도해줘.");
+        }
+
+        alert("비밀번호가 변경됐어.");
+        closeAuthModal();
+        scheduleCardSync_();
+      });
+    }
+
+    // ✅ 검색/필터는 자주 발생하므로 살짝 디바운스 + chunk 렌더
+    let _searchTimer = 0;
+    searchInput.addEventListener("input", (e) => {
+      state.search = e.target.value || "";
+      clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(() => renderSongsFull_(), 120);
+    });
+
+    filterSelect.addEventListener("change", (e) => {
+      state.filter = e.target.value;
+      renderSongsFull_();
+      scheduleCardSync_();
+    });
+
+    viewToggle.querySelectorAll(".toggle").forEach((el) => {
+      el.addEventListener("click", () => {
+        viewToggle.querySelectorAll(".toggle").forEach((t) => t.classList.remove("active"));
+        el.classList.add("active");
+        const mode = el.dataset.mode || "list";
+        state.viewMode = mode;
+        if (mode === "compact") document.body.classList.add("compact-mode");
+        else document.body.classList.remove("compact-mode");
+        scheduleCardSync_();
+      });
+    });
+
+    reloadBtn.addEventListener("click", () => {
+      loadSheet(false);
+      scheduleCardSync_();
+    });
+
+    requestTabToggle.querySelectorAll(".toggle").forEach((el) => {
+      el.addEventListener("click", () => {
+        requestTabToggle.querySelectorAll(".toggle").forEach((t) => t.classList.remove("active"));
+        el.classList.add("active");
+        state.requestTab = el.dataset.tab || "pending";
+        renderRequests();
+        scheduleCardSync_();
+      });
+    });
+
+    clearRequestsBtn.addEventListener("click", () => {
+      requireAuthThen(async () => {
+        if (!confirm("모든 신청 곡을 초기화하시겠습니까?")) return;
+        await clearRequests();
+        scheduleCardSync_();
+      });
+    });
+
+    nowPlayingDoneBtn.addEventListener("click", () => {
+      requireAuthThen(async () => {
+        await markNowPlayingDone();
+        scheduleCardSync_();
+      });
+    });
+
+    // ✅ 초기 로드 + 30초 주기 갱신
+    loadSheet(true);
+    setInterval(() => loadSheet(false), 30000);
+
+    scheduleCardSync_();
+  });
+</script>
+</body>
+</html>
